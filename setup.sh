@@ -5,8 +5,11 @@ OSname=''
 OStype=''
 OSversion=''
 
+
 function Brew {
-	which brew > /dev/null
+	xcode-select --install
+    
+    which brew > /dev/null
 	if [[ $? != 0 ]]; then 
 		echo "Attempting to install Brew..."
 		curl -fsSL 'https://raw.githubusercontent.com/Homebrew/install/master/install' | ruby > /dev/null
@@ -33,18 +36,6 @@ function Brew_Packages {
             brew install $PACKAGE
 	done
 }
-
-# function Desktop_dock {
-#     defaults read com.apple.dock persistent-others 2> /dev/null | grep '_CFURLString' | grep Applications > /dev/null
-#     if [ $? != 0 ] ; then
-#         output_msg 'Adding "Applications" directory shortcut to the Dock and changing the "Downloads" directory dock icon...'
-#         dockutil --add /Applications --view grid --display folder --sort name
-#         dockutil --add $HOME/Downloads --view grid --display folder --sort name --replacing Downloads
-#     fi
-
-#     echo  "Cleaning Dekstop dock icons..."
-#     killall -KILL Dock 2> /dev/null
-# }
 
 function OS_type {
 	# Recognize OS type:
@@ -213,6 +204,14 @@ function VisualStudioCode_extensions {
         done
     fi
 }
+
+
+### Main ###
+if [ $EUID == 0 ]
+then
+	error_msg "### This script must run WITHOUT Root privileges!"
+	exit 101
+fi
 
 OS_type
 OS_version
