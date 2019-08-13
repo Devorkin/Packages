@@ -8,7 +8,7 @@ OSversion=''
 
 function Brew {
 	xcode-select --install
-    
+
     which brew > /dev/null
 	if [[ $? != 0 ]]; then 
 		echo "Attempting to install Brew..."
@@ -173,7 +173,7 @@ function OS_version {
                 OSname='Mojave'
                 OSversion="10.14"
                 ;;
-            10.15.*)
+            10.15 | 10.15.*)
                 OSname='Catalina'
                 OSversion="10.15"
                 ;;
