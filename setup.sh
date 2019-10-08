@@ -1,17 +1,39 @@
 #! /bin/bash
 
-#Script variables
+# Script variables
+set -o nounset
+echo $(tput sgr0)
+Args=("$@")
 OSname=''
 OStype=''
 OSversion=''
 
+# Output templates:
+description_msg() {
+	echo -e "$(tput setaf 10)--> $*$(tput sgr0)"
+}
+error_msg() {
+	echo -e "$(tput setaf 1)(X) --> $*$(tput sgr0)"
+}
+notification_msg() {
+	echo -e "$(tput setaf 3)##\n## $*\n##\n$(tput sgr0)"
+}
+output_msg() {
+	echo -e "$(tput setaf 2)--> $*$(tput sgr0)"
+}
+query_msg() {
+	echo -e "$(tput setaf 9)--> $*$(tput sgr0)"
+}
+warning_msg() {
+	echo -e "$(tput setaf 3)(!) --> $*$(tput sgr0)"
+}
 
 function Brew {
 	xcode-select --install
 
     which brew > /dev/null
 	if [[ $? != 0 ]]; then 
-		echo "Attempting to install Brew..."
+		output_msg "Attempting to install Brew..."
 		curl -fsSL 'https://raw.githubusercontent.com/Homebrew/install/master/install' | ruby > /dev/null
 		export PATH=$PATH:/usr/local/bin:/usr/local/sbin
 		brew update > /dev/null
@@ -26,13 +48,13 @@ function Brew_Cask {
         brew tap ${CASKROOM}
     done
 
-    for CASK in android-file-transfer apache-directory-studio.rb dashlane disk-inventory-x docker dropbox firefox google-chrome google-backup-and-sync iterm2 java keepassx kodi microsoft-office sequel-pro slack spotify telegram the-unarchiver whatsapp vagrant visual-studio-code virtualbox virtualbox-extension-pack vlc wireshark zenmap; do
+    for CASK in android-file-transfer apache-directory-studio.rb dashlane disk-inventory-x docker dropbox firefox google-chrome google-backup-and-sync iterm2 java keepassx kodi microsoft-office quicklook-json sequel-pro slack sourcetree spotify telegram the-unarchiver whatsapp vagrant visual-studio-code virtualbox virtualbox-extension-pack vlc wireshark zenmap; do
         brew cask install ${CASK}
     done
 }
 
 function Brew_Packages {
-    for PACKAGE in autoconf automake berkeley-db@4 brightness dockutil git glances glib grc gtk+ htop jq mtr nethogs node openssl pkg-config python ssh-copy-id telnet watch wget zsh; do
+    for PACKAGE in autoconf automake berkeley-db@4 brightness dockutil git glances glib gnu-sed grc gtk+ htop jq mtr nethogs node openssl pkg-config python ssh-copy-id telnet watch wget zsh; do
             brew install $PACKAGE
 	done
 }
@@ -46,7 +68,7 @@ function OS_type {
 	elif [[ -f /usr/bin/sw_vers ]]; then
 		OStype="OSX"
 	else
-		echo "This script supports CentOS \ RHEL, OSX or Ubuntu OS ditributions!"
+		error_msg "This script supports CentOS \ RHEL, OSX or Ubuntu OS ditributions!"
 		exit 102
 	fi
 }
@@ -57,11 +79,16 @@ function Node_modules {
         for MODULE in gtop; do
             npm list -g | grep ${MODULE} > /dev/null
             if [ $? != "0" ]; then
-                echo "Installing the Node.js module: ${MODULE}..."
+                output_msg "Installing the Node.js module: ${MODULE}..."
                 npm install ${MODULE} -g > /dev/null
             fi
         done
     fi
+}
+
+function OS_Setup {
+    output_msg "Performing Operating system update..."
+    sudo softwareupdate -i -a
 }
 
 function OS_version {
@@ -71,7 +98,7 @@ function OS_version {
 		elif [[ `cat /etc/redhat-release` == "CentOS release 6."* ]]; then
 			OSversion=6
         else
-            echo "Your CentOS version is not supported yet!"
+            error_msg "Your CentOS version is not supported yet!"
             exit 103
 		fi
     elif [[ ${OStype} == "Ubuntu" ]]; then
@@ -122,7 +149,7 @@ function OS_version {
             OSversion="19.04"
             ;;
         *)
-            echo "Your Ubuntu version is not supported yet!"
+            error_msg "Your Ubuntu version is not supported yet!"
             exit 104
             ;;
        esac
@@ -178,7 +205,7 @@ function OS_version {
                 OSversion="10.15"
                 ;;
             *)
-                echo "Your Mac OS version is not supported yet!"
+                error_msg "Your Mac OS version is not supported yet!"
                 exit 105
         esac
     fi
@@ -187,28 +214,75 @@ function OS_version {
 function Python_modules {
     which pip2 > /dev/null
     if [ $? == 0 ] ; then
-        for MODULE in clint pylint requests; do
+        for MODULE in clint jira pylint requests; do
             pip2 list --format=columns | tr -s ' ' | grep -i "^$MODULE " > /dev/null
             if [ $? != "0" ]; then
-                echo "Installing the Python module: $MODULE..."
+                output_msg "Installing the Python module: $MODULE..."
                 sudo pip2 install $MODULE > /dev/null
             fi
         done
     fi
 }
 
-function VisualStudioCode_extensions {
+function Vagrant {
+    which vagrant > /dev/null
+    if [ $? == 0 ]; then
+        for PLUGIN in "vagrant-hosts vagrant-vbguest"; do
+            vagrant plugin install $PLUGIN
+        done
+    fi
+}
+
+function VirtualBox {
+    if [ -d /Applications/VirtualBox.app ]; then
+        if [ -f /usr/bin/VBoxManage ]; then
+            VBOXMANAGE=/usr/bin/VBoxManage
+        elif [ -f /usr/local/bin/VBoxManage ]; then
+            VBOXMANAGE=/usr/local/bin/VBoxManage
+        else
+            if [ `find /usr -type f VBoxManage` ]; then
+                VBOXMANAGE=`find /usr -type f VBoxManage`
+            fi
+        fi
+        
+        if [ `$VBOXMANAGE list extpacks | grep "Extension Packs" | tr -d ' ' | cut -d ':' -f2` == "0" ]; then
+            VBversion=`$VBOXMANAGE -v`
+            VBmajor="`echo ${VBversion} | cut -d 'r' -f 1`"
+            VBminor="`echo ${VBversion} | cut -d 'r' -f 2`"
+            if [ ! -f "$HOME/Downloads/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack" ]; then
+                if [ `which wget` ]; then
+                    wget --quiet http://download.virtualbox.org/virtualbox/${VBmajor}/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack -O $HOME/Downloads/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack
+                else
+                    error_msg 'Could not use Wget to download VirtualBox Extension package!'
+                fi
+            fi
+            if [ -f "$HOME/Downloads/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack" ]; then
+                output_msg "Installing VirtualBox Extension package..."
+                echo "y" | sudo $VBOXMANAGE extpack install "$HOME/Downloads/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack" > /dev/null
+            else
+                error_msg "Could not find VirtualBox extension pack!"
+            fi
+        fi
+        
+        # if [ ! -f $HOME/Library/VirtualBox/VirtualBox.xml ]; then
+        #     output_msg "Importing VirtualBox configuration..."
+        #     cp $SVN_LocalDir/Production/OSX/USER/VirtualBox.xml $HOME/Library/VirtualBox/VirtualBox.xml
+        # fi
+    fi
+}
+
+function VisualStudioCode {
+    #~/Library/Application\ Support/Code/User/settings.json
     if [[ -f /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code ]]; then
-        for PACKAGE in bbenoist.vagrant DavidAnson.vscode-markdownlint jpogran.puppet-vscode liximomo.sftp ms-azuretools.vscode-docker ms-python.python ms-vscode.powershell streetsidesoftware.code-spell-checker vscode-icons-team.vscode-icons; do
-            /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code --install-extension ${PACKAGE}
+        for EXTENSION in bbenoist.vagrant DavidAnson.vscode-markdownlint jpogran.puppet-vscode liximomo.sftp ms-azuretools.vscode-docker ms-python.python ms-vscode.powershell streetsidesoftware.code-spell-checker vscode-icons-team.vscode-icons; do
+            /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code --install-extension ${EXTENSION}
         done
     fi
 }
 
 
 ### Main ###
-if [ $EUID == 0 ]
-then
+if [ $EUID == 0 ]; then
 	error_msg "### This script must run WITHOUT Root privileges!"
 	exit 101
 fi
@@ -216,12 +290,12 @@ fi
 OS_type
 OS_version
 
-echo 'Detected:'
-echo -e "\t OS:\t\t\t${OStype}"
+output_msg 'Detected:'
+description_msg "\t OS:\t\t\t${OStype}"
 if [[ ! -z ${OSname} ]]; then
-    echo -e "\t OS name:\t\t${OSname}"
+    description_msg "\t OS name:\t\t${OSname}"
 fi
-echo -e "\t OS version:\t\t${OSversion}"
+description_msg "\t OS version:\t\t${OSversion}"
 
 if [[ ${OStype} == "OSX" ]]; then
     Brew
@@ -229,7 +303,10 @@ if [[ ${OStype} == "OSX" ]]; then
     Brew_Packages
     Node_modules
     Python_modules
-    VisualStudioCode_extensions
+    Vagrant
+    #VirtualBox
+    VisualStudioCode
+    OS_Setup
 fi
 
 exit 0
