@@ -27,6 +27,10 @@ query_msg() {
 warning_msg() {
 	echo -e "$(tput setaf 3)(!) --> $*$(tput sgr0)"
 }
+function echodo {
+	output_msg "$@"
+	"$@"
+}
 
 function Brew {
 	xcode-select --install
@@ -36,26 +40,25 @@ function Brew {
 		output_msg "Attempting to install Brew..."
 		curl -fsSL 'https://raw.githubusercontent.com/Homebrew/install/master/install' | ruby > /dev/null
 		export PATH=$PATH:/usr/local/bin:/usr/local/sbin
-		brew update > /dev/null
+		echodo brew update > /dev/null
 		if [[ "`brew analytics`" != 'Analytics is disabled.' ]]; then 
-			brew analytics off
+			echodo brew analytics off
 		fi
 	fi
 }
 
 function Brew_Cask {
-    for CASKROOM in "caskroom/cask"; do
-        brew tap ${CASKROOM}
-    done
-
+    # for CASKROOM in "caskroom/cask"; do
+    #     echodo brew tap ${CASKROOM}
+    # done
     for CASK in android-file-transfer apache-directory-studio.rb dashlane disk-inventory-x docker dropbox firefox google-chrome google-backup-and-sync iterm2 java keepassx kodi microsoft-office quicklook-json sequel-pro slack sourcetree spotify telegram the-unarchiver whatsapp vagrant visual-studio-code virtualbox virtualbox-extension-pack vlc wireshark zenmap; do
-        brew cask install ${CASK}
+        echodo brew cask install ${CASK}
     done
 }
 
 function Brew_Packages {
     for PACKAGE in autoconf automake berkeley-db@4 brightness dockutil git glances glib gnu-sed grc gtk+ htop jq mtr nethogs node openssl pkg-config python ssh-copy-id telnet watch wget zsh; do
-            brew install $PACKAGE
+        echodo brew install $PACKAGE
 	done
 }
 
@@ -80,7 +83,7 @@ function Node_modules {
             npm list -g | grep ${MODULE} > /dev/null
             if [ $? != "0" ]; then
                 output_msg "Installing the Node.js module: ${MODULE}..."
-                npm install ${MODULE} -g > /dev/null
+                echodo npm install ${MODULE} -g > /dev/null
             fi
         done
     fi
@@ -88,7 +91,7 @@ function Node_modules {
 
 function OS_Setup {
     output_msg "Performing Operating system update..."
-    sudo softwareupdate -i -a
+    echodo sudo softwareupdate -i -a
 }
 
 function OS_version {
@@ -224,11 +227,39 @@ function Python_modules {
     fi
 }
 
+function Sudoer {
+    # Solution no. #1
+    # if [ ! -d /etc/sudoers.d ]; then
+    #     output_msg "Modifying Sudoers temporarily..."
+    #     echodo sudo mkdir -vp /etc/sudoers.d
+    # fi
+
+    # if [ ! -f /etc/sudoers.d/timeout ]; then
+    #     output_msg "Preparing temporary sudoer configuration..."
+    #     echodo sudo sh -c 'echo "Defaults timestamp_timeout=-1" > /etc/sudoers.d/timeout'
+    # fi
+
+    ### ...
+    ### ...
+    ### ...
+    # if [ -f /etc/sudoers.d/timeout ]; then
+    #     output_msg "Removing Sudoers modifications..."
+    #     echodo sudo rm -f /etc/sudoers.d/timeout
+    # fi
+
+    # Solution no. #2
+    # Ask for the administrator password upfront
+    sudo -v
+
+    # Keep-alive: update existing `sudo` time stamp until `$0` has finished
+    while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+}
+
 function Vagrant {
     which vagrant > /dev/null
     if [ $? == 0 ]; then
         for PLUGIN in "vagrant-hosts vagrant-vbguest"; do
-            vagrant plugin install $PLUGIN
+            echodo vagrant plugin install $PLUGIN
         done
     fi
 }
@@ -251,7 +282,7 @@ function VirtualBox {
             VBminor="`echo ${VBversion} | cut -d 'r' -f 2`"
             if [ ! -f "$HOME/Downloads/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack" ]; then
                 if [ `which wget` ]; then
-                    wget --quiet http://download.virtualbox.org/virtualbox/${VBmajor}/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack -O $HOME/Downloads/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack
+                    echodo wget --quiet http://download.virtualbox.org/virtualbox/${VBmajor}/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack -O $HOME/Downloads/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack
                 else
                     error_msg 'Could not use Wget to download VirtualBox Extension package!'
                 fi
@@ -275,7 +306,18 @@ function VisualStudioCode {
     #~/Library/Application\ Support/Code/User/settings.json
     if [[ -f /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code ]]; then
         for EXTENSION in bbenoist.vagrant DavidAnson.vscode-markdownlint jpogran.puppet-vscode liximomo.sftp ms-azuretools.vscode-docker ms-python.python ms-vscode.powershell streetsidesoftware.code-spell-checker vscode-icons-team.vscode-icons; do
-            /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code --install-extension ${EXTENSION}
+            echodo /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code --install-extension ${EXTENSION}
+        done
+    fi
+}
+
+function Xcode {
+    git --version > /dev/null 2>&1
+    if [ $? == 1 ]; then
+        warning_msg "Xcode Developer tools isn't installed, please install it"
+        until git --version > /dev/null 2>&1; do
+            warning_msg "Waiting for Xcode installer..."
+            sleep 60
         done
     fi
 }
@@ -298,6 +340,8 @@ fi
 description_msg "\t OS version:\t\t${OSversion}"
 
 if [[ ${OStype} == "OSX" ]]; then
+    Sudoer
+    Xcode
     Brew
     Brew_Cask
     Brew_Packages
