@@ -33,8 +33,6 @@ function echodo {
 }
 
 function Brew {
-	xcode-select --install
-
     which brew > /dev/null
 	if [[ $? != 0 ]]; then 
 		output_msg "Attempting to install Brew..."
@@ -48,9 +46,6 @@ function Brew {
 }
 
 function Brew_Cask {
-    # for CASKROOM in "caskroom/cask"; do
-    #     echodo brew tap ${CASKROOM}
-    # done
     for CASK in android-file-transfer apache-directory-studio.rb dashlane disk-inventory-x docker dropbox firefox google-chrome google-backup-and-sync iterm2 java keepassx kodi microsoft-office quicklook-json sequel-pro slack sourcetree spotify telegram the-unarchiver whatsapp vagrant visual-studio-code virtualbox virtualbox-extension-pack vlc wireshark zenmap; do
         echodo brew cask install ${CASK}
     done
@@ -228,29 +223,7 @@ function Python_modules {
 }
 
 function Sudoer {
-    # Solution no. #1
-    # if [ ! -d /etc/sudoers.d ]; then
-    #     output_msg "Modifying Sudoers temporarily..."
-    #     echodo sudo mkdir -vp /etc/sudoers.d
-    # fi
-
-    # if [ ! -f /etc/sudoers.d/timeout ]; then
-    #     output_msg "Preparing temporary sudoer configuration..."
-    #     echodo sudo sh -c 'echo "Defaults timestamp_timeout=-1" > /etc/sudoers.d/timeout'
-    # fi
-
-    ### ...
-    ### ...
-    ### ...
-    # if [ -f /etc/sudoers.d/timeout ]; then
-    #     output_msg "Removing Sudoers modifications..."
-    #     echodo sudo rm -f /etc/sudoers.d/timeout
-    # fi
-
-    # Solution no. #2
-    # Ask for the administrator password upfront
     sudo -v
-
     # Keep-alive: update existing `sudo` time stamp until `$0` has finished
     while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 }
@@ -264,46 +237,7 @@ function Vagrant {
     fi
 }
 
-function VirtualBox {
-    if [ -d /Applications/VirtualBox.app ]; then
-        if [ -f /usr/bin/VBoxManage ]; then
-            VBOXMANAGE=/usr/bin/VBoxManage
-        elif [ -f /usr/local/bin/VBoxManage ]; then
-            VBOXMANAGE=/usr/local/bin/VBoxManage
-        else
-            if [ `find /usr -type f VBoxManage` ]; then
-                VBOXMANAGE=`find /usr -type f VBoxManage`
-            fi
-        fi
-        
-        if [ `$VBOXMANAGE list extpacks | grep "Extension Packs" | tr -d ' ' | cut -d ':' -f2` == "0" ]; then
-            VBversion=`$VBOXMANAGE -v`
-            VBmajor="`echo ${VBversion} | cut -d 'r' -f 1`"
-            VBminor="`echo ${VBversion} | cut -d 'r' -f 2`"
-            if [ ! -f "$HOME/Downloads/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack" ]; then
-                if [ `which wget` ]; then
-                    echodo wget --quiet http://download.virtualbox.org/virtualbox/${VBmajor}/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack -O $HOME/Downloads/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack
-                else
-                    error_msg 'Could not use Wget to download VirtualBox Extension package!'
-                fi
-            fi
-            if [ -f "$HOME/Downloads/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack" ]; then
-                output_msg "Installing VirtualBox Extension package..."
-                echo "y" | sudo $VBOXMANAGE extpack install "$HOME/Downloads/Oracle_VM_VirtualBox_Extension_Pack-${VBmajor}-${VBminor}.vbox-extpack" > /dev/null
-            else
-                error_msg "Could not find VirtualBox extension pack!"
-            fi
-        fi
-        
-        # if [ ! -f $HOME/Library/VirtualBox/VirtualBox.xml ]; then
-        #     output_msg "Importing VirtualBox configuration..."
-        #     cp $SVN_LocalDir/Production/OSX/USER/VirtualBox.xml $HOME/Library/VirtualBox/VirtualBox.xml
-        # fi
-    fi
-}
-
 function VisualStudioCode {
-    #~/Library/Application\ Support/Code/User/settings.json
     if [[ -f /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code ]]; then
         for EXTENSION in bbenoist.vagrant DavidAnson.vscode-markdownlint jpogran.puppet-vscode liximomo.sftp ms-azuretools.vscode-docker ms-python.python ms-vscode.powershell streetsidesoftware.code-spell-checker vscode-icons-team.vscode-icons; do
             echodo /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code --install-extension ${EXTENSION}
@@ -348,8 +282,10 @@ if [[ ${OStype} == "OSX" ]]; then
     Node_modules
     Python_modules
     Vagrant
-    #VirtualBox
     VisualStudioCode
+    # Repeating, to fix broken packages
+    Brew_Cask
+    Brew_Packages
     OS_Setup
 fi
 
