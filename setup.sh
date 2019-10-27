@@ -46,7 +46,7 @@ function Brew {
 }
 
 function Brew_Cask {
-    for CASK in android-file-transfer apache-directory-studio.rb dashlane disk-inventory-x docker dropbox firefox google-chrome google-backup-and-sync iterm2 java keepassx kodi microsoft-office quicklook-json sequel-pro slack sourcetree spotify telegram the-unarchiver whatsapp vagrant visual-studio-code virtualbox virtualbox-extension-pack vlc wireshark zenmap; do
+    for CASK in android-file-transfer apache-directory-studio.rb dashlane disk-inventory-x docker dropbox firefox google-chrome google-backup-and-sync iterm2 java keepassx kodi macdown microsoft-office quicklook-json sequel-pro slack sourcetree spotify telegram the-unarchiver whatsapp ubersicht vagrant visual-studio-code virtualbox virtualbox-extension-pack vlc wireshark zenmap; do
         echodo brew cask install ${CASK}
     done
 }
