@@ -114,7 +114,23 @@ function Vagrant {
 
 function VisualStudioCode {
     if [[ -f /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code ]]; then
-        for EXTENSION in bbenoist.vagrant DavidAnson.vscode-markdownlint jpogran.puppet-vscode liximomo.sftp ms-azuretools.vscode-docker ms-mssql.mssql ms-python.python ms-vscode.powershell vscode-icons-team.vscode-icons; do
+        for EXTENSION in \
+            bbenoist.vagrant \
+            DavidAnson.vscode-markdownlint \
+            felixfbecker.php-debug \
+            formulahendry.terminal \
+            jpogran.puppet-vscode \
+            liximomo.sftp \
+            ms-azuretools.vscode-docker \
+            ms-mssql.mssql \
+            ms-python.python \
+            ms-toolsai.jupyter \
+            ms-vscode-remote.remote-containers \
+            ms-vscode.powershell \
+            shd101wyy.markdown-preview-enhanced \
+            streetsidesoftware.code-spell-checker \
+            vscode-icons-team.vscode-icons \
+        ; do
             echodo /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code --install-extension ${EXTENSION}
         done
     fi
