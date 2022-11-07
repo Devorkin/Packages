@@ -83,23 +83,8 @@ function OS_Setup {
     echodo sudo softwareupdate -i -a
 }
 
-# Brew does not support anymore Python2
-# function Python_modules {
-#     which pip2 > /dev/null
-#     if [ $? == 0 ] ; then
-#         for MODULE in clint jira pylint requests; do
-#             pip2 list --format=columns | tr -s ' ' | grep -i "^$MODULE " > /dev/null
-#             if [ $? != "0" ]; then
-#                 output_msg "Installing the Python module: $MODULE..."
-#                 sudo pip2 install $MODULE > /dev/null
-#             fi
-#         done
-#     fi
-# }
-
 function Sudoer {
     sudo -v
-    # Keep-alive: update existing `sudo` time stamp until `$0` has finished
     while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 }
 
